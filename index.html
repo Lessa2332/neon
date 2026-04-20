@@ -9,12 +9,16 @@
         body { overflow: hidden; background: black; font-family: 'Courier New', monospace; color: #0f0; }
         #video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
         #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        .top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; z-index: 200; gap: 10px; flex-wrap: wrap; }
+        .top-bar {
+            position: absolute; top: 15px; left: 15px; right: 15px;
+            display: flex; justify-content: space-between; z-index: 200;
+            gap: 10px; flex-wrap: wrap;
+        }
         .top-bar button {
             background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
             border: 2px solid #0f0; color: #0f0; padding: 8px 18px;
-            border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 13px;
-            transition: 0.2s;
+            border-radius: 50px; font-weight: bold; cursor: pointer;
+            font-size: 13px; transition: 0.2s;
         }
         .top-bar button:active { transform: scale(0.96); background: #0f0; color: black; }
         #ui {
@@ -23,15 +27,17 @@
             border-radius: 20px; padding: 12px; z-index: 100;
             text-align: center; font-size: 13.5px; border: 1px solid #0f0;
         }
-        #status { color: #ffdd88; margin-bottom: 6px; font-size: 15px; font-weight: bold; letter-spacing: 1px; }
+        #status {
+            color: #ffdd88; margin-bottom: 6px; font-size: 15px;
+            font-weight: bold; letter-spacing: 1px;
+        }
         .action-btn {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: linear-gradient(45deg, #0f0, #0a0); color: #000;
             font-size: 21px; font-weight: bold; padding: 15px 34px;
             border-radius: 60px; border: none; z-index: 300;
             cursor: pointer; box-shadow: 0 0 45px #0f0; white-space: nowrap;
-            display: none;
-            transition: 0.2s;
+            display: none; transition: 0.2s;
         }
         .action-btn:active { transform: translate(-50%, -50%) scale(0.96); }
         #loading, #intro {
@@ -41,18 +47,37 @@
             color: #0f0; font-size: 1.3rem; text-align: center;
             transition: opacity 0.8s ease;
         }
-        .spinner { width: 48px; height: 48px; border: 4px solid #0f0; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        .spinner {
+            width: 48px; height: 48px; border: 4px solid #0f0;
+            border-top-color: transparent; border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
-        #intro h1 { font-size: 2.2rem; margin-bottom: 10px; text-shadow: 0 0 20px #0f0; letter-spacing: 2px; }
+        #intro h1 {
+            font-size: 2.2rem; margin-bottom: 10px;
+            text-shadow: 0 0 20px #0f0; letter-spacing: 2px;
+        }
         @media (max-width: 600px) {
             .top-bar button, .action-btn { font-size: 16px; padding: 10px 22px; }
         }
-        /* маленький індикатор жесту */
         .gesture-hint {
             position: absolute; bottom: 80px; left: 0; right: 0; text-align: center;
             z-index: 100; color: #afa; font-size: 12px; background: rgba(0,0,0,0.5);
-            width: fit-content; margin: 0 auto; padding: 4px 12px; border-radius: 40px;
-            pointer-events: none; backdrop-filter: blur(4px);
+            width: fit-content; margin: 0 auto; padding: 4px 12px;
+            border-radius: 40px; pointer-events: none; backdrop-filter: blur(4px);
+        }
+        /* Оверлей для запуску відео при блокуванні автоплею */
+        .video-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+            z-index: 10000; display: flex; align-items: center;
+            justify-content: center; flex-direction: column;
+            font-size: 24px; color: #0f0; cursor: pointer;
+            font-family: inherit; text-align: center;
+        }
+        .video-overlay span {
+            background: #0f0; color: black; padding: 16px 32px;
+            border-radius: 60px; font-weight: bold; margin-top: 20px;
         }
     </style>
 </head>
@@ -60,14 +85,12 @@
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
 
-    <!-- Завантаження -->
     <div id="loading">
         <div class="spinner"></div>
         <div>ЗАВАНТАЖЕННЯ AR...</div>
         <div style="font-size:0.8rem; margin-top:12px;">⏳ калібрування камери</div>
     </div>
 
-    <!-- Футуристична вступна заставка -->
     <div id="intro">
         <h1>SMARTLESSA</h1>
         <p>Таємна лисичка з неонового майбутнього</p>
@@ -85,7 +108,6 @@
     </div>
     <div class="gesture-hint" id="gestureHint">🤜 стисніть кулак, щоб покликати лисичку</div>
 
-    <!-- Кнопки керування (тільки replay та гра) -->
     <button id="play-video" class="action-btn">🎬 Повторити відео</button>
     <button id="task-btn" class="action-btn">🦊 Грати в гру</button>
 
@@ -112,12 +134,13 @@
             glowActive: 1.45,
             rotSmoothing: 0.16,
             posSmoothing: 0.13,
-            fistAngleThreshold: 65,       // трохи чутливіший для надійного розпізнавання кулака
+            fistAngleThreshold: 65,
             detectionFPS: 26,
-            fistHoldFrames: 2             // уникнення помилкових спрацьовувань (фільтрація)
+            fistHoldFrames: 2,
+            hideHologramAfterHandLostMs: 2500
         };
 
-        // DOM
+        // DOM елементи
         const videoEl = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const loadingDiv = document.getElementById('loading');
@@ -140,7 +163,7 @@
         const braceletGroup = new THREE.Group(); scene.add(braceletGroup);
         const hologramWorldGroup = new THREE.Group(); scene.add(hologramWorldGroup);
 
-        // === НЕОНОВИЙ БРАСЛЕТ ===
+        // Браслет
         const innerRing = new THREE.Mesh(
             new THREE.TorusGeometry(CONFIG.braceletBaseRadius, CONFIG.braceletTube, 64, 82, Math.PI * 0.79),
             new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x22ffaa, emissiveIntensity: CONFIG.glowIdle, metalness: 0.92, roughness: 0.15, transparent: true, opacity: 0.98, depthWrite: false })
@@ -156,26 +179,21 @@
         const pointLight = new THREE.PointLight(0x55ffbb, CONFIG.glowIdle, 3.2);
         braceletGroup.add(pointLight);
 
-        // === ГОЛОГРАМА SmartLessa (лисичка) ===
+        // Голограма
         const hologramVideo = document.createElement('video');
         hologramVideo.playsinline = true;
         hologramVideo.muted = false;
         hologramVideo.loop = false;
         hologramVideo.preload = 'auto';
-        // ВАЖЛИВО: переконайтесь що файл існує у папці assets/video/ 
-        // якщо ні — буде помилка, але додамо fallback текст
         hologramVideo.src = 'assets/video/guide_hologram.mp4';
-        
-        // Обробка помилки завантаження відео
         hologramVideo.onerror = () => {
-            console.warn("Відео не знайдено, але голограма працюватиме з ефектами");
-            statusDiv.textContent = '⚠️ Відео не завантажено, але ефект активний';
+            console.warn("Відео не знайдено");
+            statusDiv.textContent = '⚠️ Відео відсутнє, але ефект працює';
         };
 
         const videoTexture = new THREE.VideoTexture(hologramVideo);
         videoTexture.minFilter = THREE.LinearFilter;
 
-        // Шейдерний матеріал із голографічним ефектом
         const vertexShader = `
             varying vec2 vUv;
             varying vec3 vNormal;
@@ -196,19 +214,15 @@
             varying vec3 vNormal;
             void main() {
                 vec4 color = texture2D(uVideo, vUv);
-                // "зелений екран" ефект – робимо прозорим надто зелені області (для лисички)
                 float greenness = color.g - (color.r + color.b) * 0.5;
                 if (greenness > 0.30) discard;
-
                 float fresnel = pow(1.0 - max(0.0, dot(vNormal, vec3(0.0, 0.0, 1.0))), 3.0);
                 float scan = sin(vUv.y * 1100.0 + uTime * 35.0) * 0.11;
                 float noise = fract(sin(dot(vUv * 15.0, vec2(12.9898, 78.233))) * 43758.5453 + uTime * 15.0);
-
                 vec3 holo = mix(color.rgb * 0.85, vec3(0.12, 1.0, 0.38), 0.65);
                 holo += vec3(0.0, 1.25, 0.6) * fresnel * 2.5;
                 holo += scan + noise * 0.16;
                 holo *= 0.9 + sin(uTime * 13.0) * 0.1;
-
                 float alpha = 0.85 + fresnel * 0.5;
                 gl_FragColor = vec4(holo, alpha);
             }
@@ -231,7 +245,7 @@
             }
         });
 
-        // Частинки для атмосфери
+        // Частинки
         const particlesGroup = new THREE.Group();
         hologramWorldGroup.add(particlesGroup);
         for (let i = 0; i < 16; i++) {
@@ -241,21 +255,21 @@
             particlesGroup.add(p);
         }
 
-        // === СТАНИ ТА ЗМІННІ ===
+        // Стани
         let handLandmarker = null;
         let handVisible = false;
         let hologramActive = false;
         let fistState = false;
         let lastFistState = false;
-        let fistFrameCounter = 0;          // для фільтрації помилкових кулаків
+        let fistFrameCounter = 0;
         let currentFacingMode = 'environment';
         let currentRotX = 0, currentRotZ = 0;
         let lastDetectionTime = 0;
-        let videoPlayed = false;            // чи було запущене відео
-        let resetRequest = false;            // прапорець для повного скидання без глюків
+        let videoPlayed = false;
+        let hideHologramTimeout = null;
         const DETECTION_INTERVAL = 1000 / CONFIG.detectionFPS;
 
-        // Функції аналізу кулака (надійний алгоритм)
+        // Функції жестів
         function getFingerCurlAngle(lm, tip, pip, mcp) {
             const v1 = { x: lm[pip].x - lm[mcp].x, y: lm[pip].y - lm[mcp].y, z: (lm[pip].z||0) - (lm[mcp].z||0) };
             const v2 = { x: lm[tip].x - lm[pip].x, y: lm[tip].y - lm[pip].y, z: (lm[tip].z||0) - (lm[pip].z||0) };
@@ -266,19 +280,16 @@
         }
 
         function isFistGesture(lm) {
-            // перевіряємо 4 пальці (вказівний, середній, безіменний, мізинець)
             const fingers = [[8,6,5], [12,10,9], [16,14,13], [20,18,17]];
             let closed = 0;
             for (let [tip, pip, mcp] of fingers) {
                 if (getFingerCurlAngle(lm, tip, pip, mcp) < CONFIG.fistAngleThreshold) closed++;
             }
-            // додатково: великий палець теж має бути зігнутий (опційно)
             const thumbAngle = getFingerCurlAngle(lm, 4, 3, 2);
             if (thumbAngle < 70) closed++;
-            return closed >= 4;   // щоб кулак був чіткий, 4+ пальці
+            return closed >= 4;
         }
 
-        // Ініціалізація MediaPipe
         async function initMediaPipe() {
             try {
                 const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
@@ -315,32 +326,47 @@
             }
         }
 
-        // Активація голограми лише при кулаку + автоматичне відтворення відео
+        function showVideoOverlay() {
+            // Видаляємо попередній оверлей, якщо є
+            const old = document.querySelector('.video-overlay');
+            if (old) old.remove();
+            const overlay = document.createElement('div');
+            overlay.className = 'video-overlay';
+            overlay.innerHTML = '<div>🦊 Торкніться, щоб запустити лисичку 🦊</div><span>👉 ТУТ 👈</span>';
+            overlay.addEventListener('click', () => {
+                hologramVideo.play().then(() => {
+                    videoPlayed = true;
+                    overlay.remove();
+                    playVideoBtn.style.display = 'none';
+                    statusDiv.textContent = '✨ Відео грає! ✨';
+                }).catch(e => console.warn);
+            });
+            document.body.appendChild(overlay);
+        }
+
         function activateHologramOnFist() {
             if (hologramActive) return;
             hologramActive = true;
             hologramWorldGroup.visible = true;
             statusDiv.textContent = '✨ SmartLessa активована! ✨';
-            gestureHint.style.opacity = '0.5';
+            // Повністю ховаємо підказку жесту
+            gestureHint.style.display = 'none';
             
-            // Автоматичний запуск відео лисички
+            // Автоматичний запуск відео
             if (hologramVideo.paused || hologramVideo.ended) {
                 hologramVideo.currentTime = 0;
                 hologramVideo.play().then(() => {
                     videoPlayed = true;
-                    playVideoBtn.style.display = 'none';  // replay поки не показуємо, з'явиться після кінця
-                }).catch(e => {
-                    console.warn("Автовідтворення заблоковане? ", e);
-                    statusDiv.textContent = '⚠️ Торкніться екрану для запуску відео';
-                    // покажемо кнопку replay як резерв
-                    playVideoBtn.style.display = 'block';
-                    playVideoBtn.textContent = '▶ Запустити лисичку';
+                    playVideoBtn.style.display = 'none';
+                }).catch(() => {
+                    // Автоплей заблоковано – показуємо оверлей
+                    statusDiv.textContent = '⚠️ Торкніться екрану, щоб запустити відео';
+                    showVideoOverlay();
                 });
             }
             if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
         }
 
-        // Скидання всього стану
         function fullReset() {
             hologramActive = false;
             hologramWorldGroup.visible = false;
@@ -348,49 +374,52 @@
             fistState = false;
             lastFistState = false;
             fistFrameCounter = 0;
+            handVisible = false;        // важливо скинути
+            if (hideHologramTimeout) clearTimeout(hideHologramTimeout);
             hologramVideo.pause();
             hologramVideo.currentTime = 0;
             playVideoBtn.style.display = 'none';
             taskBtn.style.display = 'none';
             statusDiv.textContent = '👋 Скинуто. Покажіть руку та стисніть кулак';
+            gestureHint.style.display = 'block';
             gestureHint.style.opacity = '1';
-            // також скидаємо позицію браслета
+            gestureHint.innerHTML = '🤜 стисніть кулак, щоб покликати лисичку';
             braceletGroup.position.set(0, 0, 0);
             braceletGroup.rotation.set(0, 0, 0);
             currentRotX = 0; currentRotZ = 0;
+            braceletGroup.visible = false;
+            // Видаляємо оверлей, якщо був
+            const ov = document.querySelector('.video-overlay');
+            if (ov) ov.remove();
         }
 
-        // Обробка результатів руки
         function processHandResults(results) {
             if (results.landmarks && results.landmarks.length > 0) {
                 const lm = results.landmarks[0];
                 if (!handVisible) {
                     handVisible = true;
                     statusDiv.textContent = '🖐️ Рука виявлена! Стисніть кулак для голограми';
+                    if (hideHologramTimeout) clearTimeout(hideHologramTimeout);
                 }
                 
-                // Позиціонування браслета на зап'ясті
+                // Позиціонування браслета
                 const wrist = lm[0];
                 const targetX = (wrist.x - 0.5) * 2.85;
                 const targetY = (0.5 - wrist.y) * 2.15 + CONFIG.handOffsetY;
                 const targetZ = (wrist.z || 0) * 0.68 + 0.1;
-                
                 braceletGroup.position.x += (targetX - braceletGroup.position.x) * CONFIG.posSmoothing;
                 braceletGroup.position.y += (targetY - braceletGroup.position.y) * CONFIG.posSmoothing;
                 braceletGroup.position.z = targetZ;
                 braceletGroup.visible = true;
                 
-                // Голограма слідує за браслетом
                 hologramWorldGroup.position.copy(braceletGroup.position);
                 hologramWorldGroup.position.y += CONFIG.hologramOffsetY;
                 
-                // Масштаб браслета
                 const wristWidth = Math.hypot(lm[0].x - lm[17].x, lm[0].y - lm[17].y, (lm[0].z||0)-(lm[17].z||0)) * 5.9;
                 const scale = Math.max(0.78, Math.min(1.52, wristWidth / CONFIG.braceletBaseRadius));
                 innerRing.scale.set(scale, scale, scale);
                 outerRing.scale.set(scale, scale, scale);
                 
-                // Ротація браслета
                 const dx = lm[5].x - lm[17].x;
                 const dy = lm[5].y - lm[17].y;
                 const dz = (lm[5].z||0) - (lm[17].z||0);
@@ -400,66 +429,66 @@
                 currentRotZ += (rotZ - currentRotZ) * CONFIG.rotSmoothing;
                 braceletGroup.rotation.set(currentRotX, 0, currentRotZ);
                 
-                // ========== ОСНОВНА ЛОГІКА КУЛАКА ==========
+                // Логіка кулака
                 const fistNow = isFistGesture(lm);
-                // Фільтрація: декілька кадрів поспіль для уникнення помилкових спрацьовувань
                 if (fistNow) {
                     fistFrameCounter = Math.min(fistFrameCounter + 1, CONFIG.fistHoldFrames + 2);
                 } else {
                     fistFrameCounter = 0;
                 }
-                
                 const stableFist = fistFrameCounter >= CONFIG.fistHoldFrames;
-                
                 if (stableFist && !lastFistState && !hologramActive) {
-                    // КУЛАК виявлено - активуємо голограму АВТОМАТИЧНО
                     activateHologramOnFist();
                 }
                 lastFistState = stableFist;
                 
-                // Підказка жесту
-                if (!hologramActive && stableFist) {
-                    gestureHint.innerHTML = '🤜✅ Кулак! Лисичка з\'являється...';
-                } else if (!hologramActive) {
-                    gestureHint.innerHTML = '🤜 стисніть кулак, щоб покликати лисичку';
-                } else {
-                    gestureHint.innerHTML = '🦊 SmartLessa поруч!';
+                // Оновлення підказки (тільки якщо голограма ще не активна)
+                if (!hologramActive) {
+                    if (stableFist) {
+                        gestureHint.innerHTML = '🤜✅ Кулак! Лисичка з\'являється...';
+                    } else {
+                        gestureHint.innerHTML = '🤜 стисніть кулак, щоб покликати лисичку';
+                    }
                 }
-                
             } else {
                 if (handVisible) {
                     handVisible = false;
-                    statusDiv.textContent = '👋 Рука зникла, покажіть знову';
-                    braceletGroup.visible = false;   // браслет зникає, коли руки немає
-                    gestureHint.style.opacity = '1';
-                    gestureHint.innerHTML = '🤜 стисніть кулак, щоб покликати лисичку';
-                    // Якщо голограма активна, але рука зникла - залишаємо її (опціонально)
-                    // Але для кращого досвіду не ховаємо лисичку, просто втрачаємо браслет
+                    statusDiv.textContent = '👋 Рука зникла. Покажіть руку знову, щоб браслет повернувся';
+                    braceletGroup.visible = false;
+                    // Якщо голограма активна – запускаємо таймер на приховування
+                    if (hologramActive && !hideHologramTimeout) {
+                        hideHologramTimeout = setTimeout(() => {
+                            if (!handVisible && hologramActive) {
+                                hologramWorldGroup.visible = false;
+                                hologramActive = false;
+                                statusDiv.textContent = '👋 Лисичка зникла, бо рука зникла. Покажіть руку та стисніть кулак знову';
+                                gestureHint.style.display = 'block';
+                                gestureHint.innerHTML = '🤜 стисніть кулак, щоб покликати лисичку';
+                                const ov = document.querySelector('.video-overlay');
+                                if (ov) ov.remove();
+                            }
+                            hideHologramTimeout = null;
+                        }, CONFIG.hideHologramAfterHandLostMs);
+                    }
                 }
-                // Якщо рука зникла, але голограма вже активна - не ховаємо її
             }
         }
         
-        // Цикл детекції
         function detectionLoop() {
             const now = performance.now();
             if (now - lastDetectionTime > DETECTION_INTERVAL && handLandmarker && videoEl.readyState >= 2) {
                 try {
                     const results = handLandmarker.detectForVideo(videoEl, now);
                     processHandResults(results);
-                } catch(e) {
-                    console.warn("detection error", e);
-                }
+                } catch(e) { console.warn(e); }
                 lastDetectionTime = now;
             }
             requestAnimationFrame(detectionLoop);
         }
         
-        // Анімація сцени
         function animate() {
             requestAnimationFrame(animate);
             const t = performance.now() / 1000;
-            
             if (braceletGroup.visible) {
                 innerRing.rotation.y += CONFIG.rotationSpeed;
                 outerRing.rotation.y -= CONFIG.rotationSpeed * 0.8;
@@ -467,12 +496,9 @@
                 innerRing.material.emissiveIntensity += (targetGlow - innerRing.material.emissiveIntensity) * 0.12;
                 pointLight.intensity = innerRing.material.emissiveIntensity * 0.92;
             }
-            
             if (hologramWorldGroup.visible) {
                 hologramMaterial.uniforms.uTime.value = t;
                 if (!hologramVideo.paused) videoTexture.needsUpdate = true;
-                
-                // Анімація частинок
                 particlesGroup.children.forEach(p => {
                     const a = t * p.userData.speed + p.userData.angle;
                     p.position.x = Math.cos(a) * p.userData.radius;
@@ -483,26 +509,22 @@
             renderer.render(scene, camera3D);
         }
         
-        // КОНТРОЛЕРИ КНОПОК
-        // Кнопка повтору відео (реплей голограми)
+        // Кнопки
         playVideoBtn.onclick = () => {
+            // Тільки повтор відео, якщо голограма активна
             if (hologramActive) {
                 hologramVideo.currentTime = 0;
-                hologramVideo.play().catch(e => console.log);
+                hologramVideo.play().catch(e => console.warn);
                 playVideoBtn.style.display = 'none';
                 taskBtn.style.display = 'none';
                 statusDiv.textContent = '✨ Відео повторюється ✨';
+                const ov = document.querySelector('.video-overlay');
+                if (ov) ov.remove();
             } else {
-                // якщо голограма не активна, але натиснули - активуємо вручну
-                if (!hologramActive && handVisible) {
-                    activateHologramOnFist();
-                } else if (!handVisible) {
-                    statusDiv.textContent = '👋 Спочатку покажіть руку';
-                }
+                statusDiv.textContent = '👋 Спочатку стисніть кулак, щоб активувати голограму';
             }
         };
         
-        // Відео закінчилось — показати кнопку гри та replay
         hologramVideo.addEventListener('ended', () => {
             if (hologramActive) {
                 taskBtn.style.display = 'block';
@@ -516,24 +538,18 @@
             window.open('https://lessa2332.github.io/animal/', '_blank');
         };
         
-        // Перемикання камери
         cameraToggleBtn.onclick = async () => {
             currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
             await startCamera();
             fullReset();
+            // Невелика затримка, щоб MediaPipe перезапустився коректно
+            setTimeout(() => { lastDetectionTime = 0; }, 500);
         };
         
         resetBtn.onclick = () => {
             fullReset();
-            // додатково скидаємо візуальний стан кнопок
-            playVideoBtn.style.display = 'none';
-            taskBtn.style.display = 'none';
-            statusDiv.textContent = '👋 Скидання... покажіть руку';
-            gestureHint.innerHTML = '🤜 стисніть кулак, щоб покликати лисичку';
-            gestureHint.style.opacity = '1';
         };
         
-        // ГОЛОВНА ІНІЦІАЛІЗАЦІЯ
         async function init() {
             const mpReady = await initMediaPipe();
             if (!mpReady) {
@@ -541,13 +557,10 @@
                 return;
             }
             await startCamera();
-            
-            // Приховуємо заставку через 2.5 сек
             setTimeout(() => {
                 introDiv.style.opacity = '0';
                 setTimeout(() => introDiv.style.display = 'none', 800);
             }, 2500);
-            
             braceletGroup.visible = false;
             hologramWorldGroup.visible = false;
             animate();
@@ -560,20 +573,11 @@
             loadingDiv.innerHTML = `<div style="color:#f88">Критична помилка: ${err.message}</div>`;
         });
         
-        // Адаптація до розміру вікна
         window.addEventListener('resize', () => {
             camera3D.aspect = window.innerWidth / window.innerHeight;
             camera3D.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-        
-        // Додатковий фокус: якщо браузер блокує автовідтворення, натискання будь-де запустить відео
-        window.addEventListener('touchstart', function onFirstTouch() {
-            if (hologramActive && hologramVideo.paused && !videoPlayed && hologramVideo.src) {
-                hologramVideo.play().catch(e=>{});
-                window.removeEventListener('touchstart', onFirstTouch);
-            }
-        }, { once: true });
     </script>
 </body>
 </html>
