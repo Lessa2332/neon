@@ -7,9 +7,8 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body { overflow: hidden; background: black; font-family: 'Courier New', monospace; color: #0f0; }
-        /* Початкове дзеркальне відображення для фронтальної камери */
-        #video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; transform: scaleX(-1); }
-        #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+        #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
         
         #name-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -38,10 +37,6 @@
             text-align: center; border: 1px solid #0f0;
         }
         #status { color: #ffdd88; font-weight: bold; }
-        .gesture-hint {
-            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
-            color: #afa; font-size: 13px; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 40px; z-index: 100; transition: 0.3s;
-        }
         #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; color: #0f0; }
         .spinner { width: 40px; height: 40px; border: 4px solid #0f0; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -49,7 +44,7 @@
 </head>
 <body>
 
-    <div id="loading"><div class="spinner"></div><p>Завантаження системи...</p></div>
+    <div id="loading"><div class="spinner"></div><p id="loading-text">Ініціалізація...</p></div>
 
     <div id="name-modal">
         <h2 style="color:#0f0; margin-bottom:20px;">🦊 Я СМАРТЛЕССА.<br>ЯК ТЕБЕ ЗВАТИ?</h2>
@@ -62,14 +57,12 @@
 
     <div class="top-bar">
         <button id="camera-toggle">🔄 КАМЕРА</button>
-        <button id="reset-btn">⟳ СКИНУТИ</button>
+        <button onclick="location.reload()">⟳ СКИНУТИ</button>
     </div>
 
     <div id="ui">
         <div id="status">👋 Покажи долоню</div>
     </div>
-    
-    <div class="gesture-hint" id="gestureHint">🤜 Стисни кулак, щоб викликати лисичку</div>
 
     <script type="importmap">
         {
@@ -86,21 +79,22 @@
 
         const videoEl = document.getElementById('video');
         const statusDiv = document.getElementById('status');
+        const loadText = document.getElementById('loading-text');
+        
         let userName = "досліднику";
         let handLandmarker;
         let hologramActive = false;
         let currentFacingMode = 'user'; 
 
-        const synth = window.speechSynthesis;
+        // Гуртовий запуск звуку
         function speak(text) {
-            synth.cancel();
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'uk-UA';
-            utterance.pitch = 1.2;
-            synth.speak(utterance);
+            window.speechSynthesis.speak(utterance);
         }
 
-        // THREE.JS
+        // THREE.JS SCENE
         const scene = new THREE.Scene();
         const camera3D = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera3D.position.z = 3;
@@ -110,21 +104,21 @@
         const braceletGroup = new THREE.Group();
         scene.add(braceletGroup);
         
-        // Неонове кільце
         const ring = new THREE.Mesh(
-            new THREE.TorusGeometry(0.2, 0.02, 16, 100), 
+            new THREE.TorusGeometry(0.2, 0.01, 16, 100), 
             new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 2 })
         );
         braceletGroup.add(ring);
         braceletGroup.add(new THREE.PointLight(0x00ffaa, 2, 3));
 
-        // ВІДЕО-ГОЛОГРАМА (Шлях згідно вашого репозиторію)
+        // ВІДЕО-ГОЛОГРАМА
         const holoVideo = document.createElement('video');
         holoVideo.src = 'assets/video/guide_hologram.mp4'; 
         holoVideo.loop = true;
         holoVideo.muted = true;
         holoVideo.playsInline = true;
         holoVideo.crossOrigin = "anonymous";
+        holoVideo.load();
 
         const videoTex = new THREE.VideoTexture(holoVideo);
         const holoMat = new THREE.ShaderMaterial({
@@ -136,9 +130,8 @@
                 void main() {
                     vec4 color = texture2D(uVideo, vUv);
                     float greenness = color.g - (color.r + color.b) * 0.5;
-                    if (greenness > 0.25) discard;
-                    float scan = sin(vUv.y * 150.0 + uTime * 10.0) * 0.1;
-                    gl_FragColor = vec4(color.rgb + scan, 0.9);
+                    if (greenness > 0.2) discard;
+                    gl_FragColor = vec4(color.rgb, 0.8);
                 }
             `
         });
@@ -148,38 +141,23 @@
         holoPlane.visible = false;
 
         async function initCamera() {
+            loadText.innerText = "Доступ до камери...";
             if (videoEl.srcObject) videoEl.srcObject.getTracks().forEach(t => t.stop());
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: currentFacingMode, width: 1280, height: 720 } 
+                video: { facingMode: currentFacingMode } 
             });
             videoEl.srcObject = stream;
-            // Дзеркало тільки для фронтальної
             videoEl.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
-        }
-
-        function isFist(lm) {
-            // Спрощена перевірка: кінчики пальців нижче за середні фаланги
-            return lm[8].y > lm[6].y && lm[12].y > lm[10].y && lm[16].y > lm[14].y;
-        }
-
-        function activate() {
-            if (hologramActive) return;
-            hologramActive = true;
-            holoPlane.visible = true;
-            holoVideo.play().catch(() => console.log("Чекаю взаємодії для відео"));
-            statusDiv.textContent = `🦊 Привіт, ${userName}!`;
-            document.getElementById('gestureHint').style.opacity = '0';
-            speak(`Привіт, ${userName}! Я Смартлесса. Рада тебе бачити в доповненій реальності!`);
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            return new Promise(resolve => videoEl.onloadedmetadata = () => resolve());
         }
 
         async function setupAR() {
+            loadText.innerText = "Завантаження ШІ...";
             const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
             handLandmarker = await HandLandmarker.createFromOptions(vision, {
                 baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
                 runningMode: "VIDEO", numHands: 1
             });
-            document.getElementById('loading').style.display = 'none';
         }
 
         function loop() {
@@ -188,12 +166,21 @@
                 const res = handLandmarker.detectForVideo(videoEl, performance.now());
                 if (res.landmarks && res.landmarks[0]) {
                     const wrist = res.landmarks[0][0];
-                    // Адаптація координат під дзеркальність
-                    const xSide = currentFacingMode === 'user' ? -3 : 3;
-                    braceletGroup.position.x = (wrist.x - 0.5) * xSide;
+                    // Корекція X для фронтальної камери
+                    const xCorrected = currentFacingMode === 'user' ? (1 - wrist.x) : wrist.x;
+                    braceletGroup.position.x = (xCorrected - 0.5) * 3;
                     braceletGroup.position.y = (0.5 - wrist.y) * 2;
                     braceletGroup.visible = true;
-                    if (isFist(res.landmarks[0])) activate();
+
+                    // Перевірка кулака
+                    const lm = res.landmarks[0];
+                    if (lm[8].y > lm[6].y && lm[12].y > lm[10].y && !hologramActive) {
+                        hologramActive = true;
+                        holoPlane.visible = true;
+                        holoVideo.play();
+                        statusDiv.textContent = `🦊 Привіт, ${userName}!`;
+                        speak(`Привіт, ${userName}!`);
+                    }
                 } else {
                     braceletGroup.visible = false;
                 }
@@ -204,22 +191,23 @@
         }
 
         document.getElementById('start-btn').onclick = async () => {
-            const input = document.getElementById('user-name').value;
-            if (input) userName = input;
-            document.getElementById('name-modal').style.opacity = '0';
-            setTimeout(() => document.getElementById('name-modal').style.display = 'none', 500);
-            await initCamera();
-            await setupAR();
-            loop();
+            userName = document.getElementById('user-name').value || "досліднику";
+            document.getElementById('name-modal').style.display = 'none';
+            try {
+                await initCamera();
+                await setupAR();
+                document.getElementById('loading').style.display = 'none';
+                loop();
+            } catch (err) {
+                loadText.innerText = "Помилка камери!";
+                console.error(err);
+            }
         };
 
         document.getElementById('camera-toggle').onclick = async () => {
             currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
             await initCamera();
         };
-
-        document.getElementById('reset-btn').onclick = () => location.reload();
-
     </script>
 </body>
 </html>
