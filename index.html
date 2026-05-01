@@ -3,21 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SMARTLESSA | AI-Асистент</title>
+    <title>SMARTLESSA | NEON AR</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body { overflow: hidden; background: black; font-family: 'Courier New', monospace; color: #0f0; }
-        #video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+        /* Початкове дзеркальне відображення для фронтальної камери */
+        #video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; transform: scaleX(-1); }
         #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
-        /* Вікно знайомства */
         #name-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 2000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; padding: 20px;
+            text-align: center; padding: 20px; transition: opacity 0.5s;
         }
-        #name-modal h2 { font-size: 1.8rem; color: #0f0; margin-bottom: 25px; text-shadow: 0 0 15px #0f0; }
         #user-name {
             padding: 15px; border-radius: 50px; border: 2px solid #0f0;
             background: transparent; color: #0f0; font-size: 1.2rem;
@@ -26,45 +25,35 @@
         #start-btn {
             background: #0f0; color: black; padding: 15px 45px;
             border-radius: 50px; font-weight: bold; border: none; cursor: pointer;
-            font-size: 1.1rem; box-shadow: 0 0 20px #0f0;
+            box-shadow: 0 0 20px #0f0; font-size: 1.1rem;
         }
 
-        .top-bar {
-            position: absolute; top: 15px; left: 15px; right: 15px;
-            display: flex; justify-content: space-between; z-index: 200;
-        }
-        .top-bar button {
-            background: rgba(0,0,0,0.7); border: 2px solid #0f0; color: #0f0;
-            padding: 8px 15px; border-radius: 50px; cursor: pointer; font-size: 12px;
-        }
+        .top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; z-index: 200; }
+        .top-bar button { background: rgba(0,0,0,0.7); border: 2px solid #0f0; color: #0f0; padding: 8px 15px; border-radius: 50px; cursor: pointer; font-size: 12px; }
+        
         #ui {
             position: absolute; bottom: 20px; left: 15px; right: 15px;
             background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
             border-radius: 20px; padding: 15px; z-index: 100;
             text-align: center; border: 1px solid #0f0;
         }
-        #status { color: #ffdd88; font-weight: bold; margin-bottom: 5px; }
+        #status { color: #ffdd88; font-weight: bold; }
         .gesture-hint {
             position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
-            color: #afa; font-size: 13px; background: rgba(0,0,0,0.5);
-            padding: 5px 15px; border-radius: 40px; z-index: 100;
+            color: #afa; font-size: 13px; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 40px; z-index: 100; transition: 0.3s;
         }
-        #loading {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: black; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 3000;
-        }
-        .spinner { width: 40px; height: 40px; border: 4px solid #0f0; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; color: #0f0; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #0f0; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="loading"><div class="spinner"></div><p>Ініціалізація AI...</p></div>
+    <div id="loading"><div class="spinner"></div><p>Завантаження системи...</p></div>
 
     <div id="name-modal">
-        <h2>🦊 Я СМАРТЛЕССА.<br>ЯК ТЕБЕ ЗВАТИ?</h2>
-        <input type="text" id="user-name" placeholder="Введи своє ім'я..." autocomplete="off">
+        <h2 style="color:#0f0; margin-bottom:20px;">🦊 Я СМАРТЛЕССА.<br>ЯК ТЕБЕ ЗВАТИ?</h2>
+        <input type="text" id="user-name" placeholder="Твоє ім'я..." autocomplete="off">
         <button id="start-btn">ПОЧАТИ УРОК</button>
     </div>
 
@@ -77,11 +66,10 @@
     </div>
 
     <div id="ui">
-        <div id="status">👋 Чекаю на твою руку...</div>
-        <div id="sub-status">Торкнися майбутнього</div>
+        <div id="status">👋 Покажи долоню</div>
     </div>
     
-    <div class="gesture-hint" id="gestureHint">🤜 Стисни кулак, щоб покликати мене</div>
+    <div class="gesture-hint" id="gestureHint">🤜 Стисни кулак, щоб викликати лисичку</div>
 
     <script type="importmap">
         {
@@ -96,22 +84,23 @@
         import * as THREE from 'three';
         import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 
-        // КОНФІГУРАЦІЯ
-        const CONFIG = {
-            braceletRadius: 0.2,
-            hologramY: 0.35,
-            smoothing: 0.15,
-            fistThreshold: 65,
-            hologramScale: 0.95
-        };
-
-        let userName = "друже";
+        const videoEl = document.getElementById('video');
+        const statusDiv = document.getElementById('status');
+        let userName = "досліднику";
         let handLandmarker;
-        let handVisible = false;
         let hologramActive = false;
-        const synth = window.speechSynthesis;
+        let currentFacingMode = 'user'; 
 
-        // THREE.JS SCENE
+        const synth = window.speechSynthesis;
+        function speak(text) {
+            synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'uk-UA';
+            utterance.pitch = 1.2;
+            synth.speak(utterance);
+        }
+
+        // THREE.JS
         const scene = new THREE.Scene();
         const camera3D = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera3D.position.z = 3;
@@ -120,153 +109,117 @@
 
         const braceletGroup = new THREE.Group();
         scene.add(braceletGroup);
-
-        const holoGroup = new THREE.Group();
-        scene.add(holoGroup);
-        holoGroup.visible = false;
-
-        // БРАСЛЕТ (НЕОНОВЕ КІЛЬЦЕ)
-        const ringGeom = new THREE.TorusGeometry(CONFIG.braceletRadius, 0.02, 32, 64);
-        const ringMat = new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 1 });
-        const ring = new THREE.Mesh(ringGeom, ringMat);
+        
+        // Неонове кільце
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(0.2, 0.02, 16, 100), 
+            new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 2 })
+        );
         braceletGroup.add(ring);
-        braceletGroup.add(new THREE.PointLight(0x00ffaa, 2, 2));
+        braceletGroup.add(new THREE.PointLight(0x00ffaa, 2, 3));
 
-        // ВІДЕО-ГОЛОГРАМА (БЕЗ ЗВУКУ ДЛЯ СТАБІЛЬНОСТІ)
+        // ВІДЕО-ГОЛОГРАМА (Шлях згідно вашого репозиторію)
         const holoVideo = document.createElement('video');
-        holoVideo.src = 'assets/video/guide_hologram.mp4'; // Шлях до вашого відео
+        holoVideo.src = 'assets/video/guide_hologram.mp4'; 
         holoVideo.loop = true;
-        holoVideo.muted = true; 
+        holoVideo.muted = true;
         holoVideo.playsInline = true;
+        holoVideo.crossOrigin = "anonymous";
 
         const videoTex = new THREE.VideoTexture(holoVideo);
         const holoMat = new THREE.ShaderMaterial({
             uniforms: { uVideo: { value: videoTex }, uTime: { value: 0 } },
             transparent: true,
-            side: THREE.DoubleSide,
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
+            vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
             fragmentShader: `
-                uniform sampler2D uVideo;
-                uniform float uTime;
-                varying vec2 vUv;
+                uniform sampler2D uVideo; uniform float uTime; varying vec2 vUv;
                 void main() {
                     vec4 color = texture2D(uVideo, vUv);
                     float greenness = color.g - (color.r + color.b) * 0.5;
-                    if (greenness > 0.25) discard; // Хромакей
-                    float scan = sin(vUv.y * 100.0 + uTime * 10.0) * 0.1;
-                    gl_FragColor = vec4(color.rgb + scan, 0.85);
+                    if (greenness > 0.25) discard;
+                    float scan = sin(vUv.y * 150.0 + uTime * 10.0) * 0.1;
+                    gl_FragColor = vec4(color.rgb + scan, 0.9);
                 }
             `
         });
-
         const holoPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1), holoMat);
-        holoPlane.position.y = CONFIG.hologramY;
-        holoGroup.add(holoPlane);
+        holoPlane.position.y = 0.4;
+        braceletGroup.add(holoPlane);
+        holoPlane.visible = false;
 
-        // ГОЛОСОВА ФУНКЦІЯ
-        function speak(text) {
-            synth.cancel();
-            const speech = new SpeechSynthesisUtterance(text);
-            speech.lang = 'uk-UA';
-            speech.pitch = 1.2;
-            speech.rate = 1.0;
-            synth.speak(speech);
-        }
-
-        // ПЕРЕВІРКА КУЛАКА
-        function isFist(lm) {
-            const fingers = [[8,6,5], [12,10,9], [16,14,13], [20,18,17]];
-            let closed = 0;
-            fingers.forEach(([t, p, m]) => {
-                const angle = Math.acos((lm[p].y - lm[m].y) / Math.hypot(lm[p].x-lm[m].x, lm[p].y-lm[m].y)) * 180 / Math.PI;
-                if (lm[t].y > lm[p].y) closed++;
+        async function initCamera() {
+            if (videoEl.srcObject) videoEl.srcObject.getTracks().forEach(t => t.stop());
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: currentFacingMode, width: 1280, height: 720 } 
             });
-            return closed >= 3;
+            videoEl.srcObject = stream;
+            // Дзеркало тільки для фронтальної
+            videoEl.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
         }
 
-        // АКТИВАЦІЯ
+        function isFist(lm) {
+            // Спрощена перевірка: кінчики пальців нижче за середні фаланги
+            return lm[8].y > lm[6].y && lm[12].y > lm[10].y && lm[16].y > lm[14].y;
+        }
+
         function activate() {
             if (hologramActive) return;
             hologramActive = true;
-            holoGroup.visible = true;
-            holoVideo.play();
-            
-            const greetings = [
-                `Привіт, ${userName}! Я рада тебе бачити. Давай вивчати географію разом!`,
-                `Вітаю, ${userName}! Ти активував мій секретний браслет.`,
-                `Ого, ${userName}! Ти виглядаєш як справжній дослідник.`
-            ];
-            speak(greetings[Math.floor(Math.random() * greetings.length)]);
-            
-            document.getElementById('status').textContent = `🦊 Привіт, ${userName}!`;
+            holoPlane.visible = true;
+            holoVideo.play().catch(() => console.log("Чекаю взаємодії для відео"));
+            statusDiv.textContent = `🦊 Привіт, ${userName}!`;
             document.getElementById('gestureHint').style.opacity = '0';
+            speak(`Привіт, ${userName}! Я Смартлесса. Рада тебе бачити в доповненій реальності!`);
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
         }
 
-        // МЕДІАПАЙП ТА КАМЕРА
-        async function start() {
+        async function setupAR() {
             const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
             handLandmarker = await HandLandmarker.createFromOptions(vision, {
                 baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
                 runningMode: "VIDEO", numHands: 1
             });
-
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            const v = document.getElementById('video');
-            v.srcObject = stream;
-            
             document.getElementById('loading').style.display = 'none';
-            animate();
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            const now = performance.now();
-            const v = document.getElementById('video');
-            
-            if (handLandmarker && v.readyState >= 2) {
-                const res = handLandmarker.detectForVideo(v, now);
+        function loop() {
+            requestAnimationFrame(loop);
+            if (handLandmarker && videoEl.readyState >= 2) {
+                const res = handLandmarker.detectForVideo(videoEl, performance.now());
                 if (res.landmarks && res.landmarks[0]) {
-                    const lm = res.landmarks[0];
-                    const wrist = lm[0];
-                    
-                    // Плавне слідування за рукою
-                    const tx = (wrist.x - 0.5) * 3;
-                    const ty = (0.5 - wrist.y) * 2;
-                    braceletGroup.position.x += (tx - braceletGroup.position.x) * CONFIG.smoothing;
-                    braceletGroup.position.y += (ty - braceletGroup.position.y) * CONFIG.smoothing;
+                    const wrist = res.landmarks[0][0];
+                    // Адаптація координат під дзеркальність
+                    const xSide = currentFacingMode === 'user' ? -3 : 3;
+                    braceletGroup.position.x = (wrist.x - 0.5) * xSide;
+                    braceletGroup.position.y = (0.5 - wrist.y) * 2;
                     braceletGroup.visible = true;
-                    
-                    holoGroup.position.copy(braceletGroup.position);
-                    
-                    if (isFist(lm)) activate();
+                    if (isFist(res.landmarks[0])) activate();
                 } else {
                     braceletGroup.visible = false;
                 }
             }
-            
-            holoMat.uniforms.uTime.value = now / 1000;
             ring.rotation.y += 0.02;
+            holoMat.uniforms.uTime.value = performance.now() / 1000;
             renderer.render(scene, camera3D);
         }
 
-        // ПЕРШИЙ КЛІК - ЗАПУСК
-        document.getElementById('start-btn').onclick = () => {
-            const val = document.getElementById('user-name').value;
-            if (val) userName = val;
+        document.getElementById('start-btn').onclick = async () => {
+            const input = document.getElementById('user-name').value;
+            if (input) userName = input;
             document.getElementById('name-modal').style.opacity = '0';
             setTimeout(() => document.getElementById('name-modal').style.display = 'none', 500);
-            start();
+            await initCamera();
+            await setupAR();
+            loop();
+        };
+
+        document.getElementById('camera-toggle').onclick = async () => {
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            await initCamera();
         };
 
         document.getElementById('reset-btn').onclick = () => location.reload();
-        
+
     </script>
 </body>
 </html>
