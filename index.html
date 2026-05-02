@@ -3,25 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SMARTLESSA | GEOGRAPHY QUEST FIXED</title>
+    <title>SMARTLESSA | INCLUSIVE AR</title>
     <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body { overflow: hidden; background: black; font-family: 'Segoe UI', sans-serif; color: #0f0; }
+        body { overflow: hidden; background: black; font-family: 'Segoe UI', sans-serif; }
         #video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; transform: scaleX(-1); }
         #canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        #ui { position: absolute; bottom: 50px; left: 0; right: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; gap: 20px; }
-        #status { background: rgba(0,0,0,0.85); padding: 15px 30px; border-radius: 50px; color: #ffdd88; font-weight: bold; border: 2px solid #0f0; text-align: center; min-width: 280px; }
+        
+        #ui { position: absolute; bottom: 40px; left: 0; right: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        
+        /* СУБТИТРИ ТА СТАТУС */
+        #status { 
+            background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 25px; 
+            color: #fff; font-weight: bold; border: 2px solid #0f0; 
+            text-align: center; width: 85%; max-width: 400px;
+            box-shadow: 0 0 20px rgba(0,255,0,0.4);
+            font-size: 1.1rem; line-height: 1.3;
+        }
+
         #mic-btn { 
-            display: none; width: 90px; height: 90px; background: #ff4444; border-radius: 50%; 
+            display: none; width: 85px; height: 85px; background: #ff4444; border-radius: 50%; 
             border: 4px solid white; cursor: pointer; box-shadow: 0 0 30px rgba(255,0,0,0.6);
             align-items: center; justify-content: center; animation: pulse 1.5s infinite;
         }
-        #finish-btn { display: none; background: #0f0; color: #000; padding: 15px 40px; border-radius: 50px; font-weight: bold; cursor: pointer; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        #start-screen { position: fixed; inset: 0; background: radial-gradient(circle, #002211 0%, #000 100%); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        input { padding: 15px; border-radius: 50px; border: 2px solid #0f0; background: transparent; color: #0f0; text-align: center; margin-bottom: 20px; width: 80%; max-width: 300px; font-size: 1.2rem; outline: none; }
+
+        #start-screen { position: fixed; inset: 0; background: radial-gradient(circle, #002211 0%, #000 100%); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        input { padding: 15px; border-radius: 50px; border: 2px solid #0f0; background: transparent; color: #0f0; text-align: center; margin-bottom: 20px; width: 100%; max-width: 300px; font-size: 1.2rem; outline: none; }
         #btn-start { background: #0f0; color: black; padding: 20px 60px; border-radius: 50px; font-weight: 900; border: none; cursor: pointer; font-size: 1.3rem; box-shadow: 0 0 40px #0f0; }
+        .safety { font-size: 0.75rem; color: #ffaa00; margin-top: 25px; max-width: 280px; }
     </style>
 </head>
 <body>
@@ -30,17 +41,17 @@
         <h1 style="color:#0f0; margin-bottom:10px;">SMARTLESSA AR</h1>
         <input type="text" id="user-name" placeholder="Твоє ім'я...">
         <button id="btn-start">ПОЧАТИ КВЕСТ</button>
+        <div class="safety">⚠️ Нагляд дорослих обов'язковий (дітям до 13 років). Слідкуйте за оточенням.</div>
     </div>
 
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
     
     <div id="ui">
-        <div id="status">Завантаження ШІ...</div>
+        <div id="status">Завантаження системи...</div>
         <div id="mic-btn">
-            <svg width="45" height="45" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
         </div>
-        <button id="finish-btn" onclick="location.reload()">ЗАВЕРШИТИ</button>
     </div>
 
     <script type="module">
@@ -49,21 +60,20 @@
         const video = document.getElementById('video');
         const statusDiv = document.getElementById('status');
         const micBtn = document.getElementById('mic-btn');
-        const finishBtn = document.getElementById('finish-btn');
         let handLandmarker, scene, camera, renderer, braceletGroup, masterGroup, holoPlane, holoVideo;
         
         let userName = "досліднику";
         let score = 0;
         let currentIdx = 0;
-        let isWaitingForGesture = true; // Чекаємо на кулак тільки на початку і перед новими питаннями
-        let isSpeaking = false; 
+        let isWaitingForGesture = true;
+        let isSpeaking = false;
 
         const questions = [
-            { q: "Яка найбільша оболонка Землі, що об’єднує всі сфери?", a: ["географічна"] },
+            { q: "Яка найбільша оболонка Землі об'єднує всі інші сфери?", a: ["географічна"] },
             { q: "Як називається повітряна оболонка Землі?", a: ["атмосфера"] },
             { q: "Як називається тверда оболонка Землі?", a: ["літосфера"] },
-            { q: "Як називається водна оболонка?", a: ["гідросфера"] },
-            { q: "Як називається жива оболонка?", a: ["біосфера"] }
+            { q: "Як називається водна оболонка нашої планети?", a: ["гідросфера"] },
+            { q: "Як називається жива оболонка планети?", a: ["біосфера"] }
         ];
 
         const vertexShader = `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
@@ -77,7 +87,11 @@
             }
         `;
 
+        // Функція з текстовим дублюванням
         function speak(text, onEnd) {
+            statusDiv.innerText = text; // Відображаємо текст як субтитри
+            statusDiv.style.borderColor = "#0f0";
+            
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'uk-UA';
@@ -91,7 +105,7 @@
                 baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
                 runningMode: "VIDEO", numHands: 1
             });
-            statusDiv.innerText = "Система готова. Покажи кулак!";
+            statusDiv.innerText = "👋 Система готова! Покажи кулак перед камерою.";
         }
 
         function setupScene() {
@@ -102,13 +116,12 @@
 
             masterGroup = new THREE.Group();
             scene.add(masterGroup);
-
             braceletGroup = new THREE.Group();
             masterGroup.add(braceletGroup);
 
             const ring = new THREE.Mesh(
                 new THREE.TorusGeometry(0.25, 0.015, 16, 100),
-                new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 2 })
+                new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 2.5 })
             );
             braceletGroup.add(ring);
 
@@ -136,20 +149,18 @@
 
         function triggerQuestion() {
             if (isSpeaking || currentIdx >= questions.length) return;
-            
-            isWaitingForGesture = false; // Блокуємо жест кулака під час питання
+            isWaitingForGesture = false;
             isSpeaking = true;
             holoPlane.visible = true;
             holoVideo.play();
             
-            let intro = currentIdx === 0 ? `Привіт, ${userName}! Давай перевіримо знання. ` : "";
-            statusDiv.innerText = `Питання №${currentIdx + 1}`;
-
-            speak(intro + questions[currentIdx].q, () => {
+            let text = questions[currentIdx].q;
+            speak(text, () => {
                 isSpeaking = false;
-                holoVideo.pause(); // Лисичка замовкає — відео зупиняється
+                holoVideo.pause();
                 micBtn.style.display = "flex";
-                statusDiv.innerText = "Натисніть мікрофон";
+                statusDiv.innerText = "🎤 ГОВОРИ ЗАРАЗ...";
+                statusDiv.style.borderColor = "#ff4444";
             });
         }
 
@@ -157,30 +168,26 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const rec = new SpeechRecognition();
             rec.lang = 'uk-UA';
-            rec.onstart = () => { micBtn.style.background = "#00ff00"; statusDiv.innerText = "Слухаю..."; };
+            rec.onstart = () => { micBtn.style.background = "#00ff00"; };
             rec.onresult = (e) => {
                 const res = e.results[0][0].transcript.toLowerCase();
                 const isCorrect = questions[currentIdx].a.some(ans => res.includes(ans));
 
                 if (isCorrect) {
                     score++;
-                    speak("Правильно! Ти молодець!");
+                    speak("Правильно! Чудова робота!");
                 } else {
-                    speak("Майже, але це не зовсім так.");
+                    speak("Не зовсім. Але не хвилюйся, йдемо далі!");
                 }
 
                 micBtn.style.display = "none";
                 micBtn.style.background = "#ff4444";
                 currentIdx++;
 
-                if (currentIdx < questions.length) {
-                    setTimeout(() => {
-                        isSpeaking = false;
-                        triggerQuestion(); // Автоматично наступне питання
-                    }, 2000);
-                } else {
-                    setTimeout(finishLesson, 2000);
-                }
+                setTimeout(() => {
+                    if (currentIdx < questions.length) triggerQuestion();
+                    else finishLesson();
+                }, 2000);
             };
             rec.start();
         };
@@ -188,10 +195,9 @@
         function finishLesson() {
             holoPlane.visible = true;
             holoVideo.play();
-            statusDiv.innerText = "Кінець уроку";
-            speak(`Вітаю, ${userName}! Урок завершено. Твій результат: ${score} з 5 зірок. Ти супер!`, () => {
+            speak(`Вітаю, ${userName}! Урок завершено. Твій результат: ${score} з 5 зірок!`, () => {
                 holoVideo.pause();
-                finishBtn.style.display = "block";
+                setTimeout(() => location.reload(), 6000);
             });
         }
 
@@ -207,11 +213,7 @@
 
                     const lm = res.landmarks[0];
                     const isFist = lm[8].y > lm[6].y && lm[12].y > lm[10].y;
-                    
-                    // Запускаємо квест ТІЛЬКИ якщо ми чекаємо на початковий жест
-                    if (isFist && isWaitingForGesture) {
-                        triggerQuestion();
-                    }
+                    if (isFist && isWaitingForGesture) triggerQuestion();
                 } else { masterGroup.visible = false; }
             }
             if (braceletGroup) braceletGroup.rotation.z += 0.02;
@@ -221,7 +223,7 @@
         document.getElementById('btn-start').onclick = async () => {
             userName = document.getElementById('user-name').value || "досліднику";
             document.getElementById('start-screen').style.display = 'none';
-            speak("Систему активовано");
+            speak(`Система готова. ${userName}, покажи кулак!`);
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             video.srcObject = stream;
             video.play();
