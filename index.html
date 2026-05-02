@@ -3,52 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SMARTLESSA AR</title>
+    <title>SMARTLESSA AR | PRO V2</title>
     <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body { overflow: hidden; background: black; font-family: 'Segoe UI', sans-serif; }
+        body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
         #video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; transform: scaleX(-1); }
         #canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
         
-        #ui { position: absolute; bottom: 40px; left: 0; right: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        #progress-container { position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: rgba(255,255,255,0.1); z-index: 150; }
+        #progress-bar { width: 0%; height: 100%; background: #0f0; box-shadow: 0 0 15px #0f0; transition: width 0.5s ease; }
+
+        #ui { position: absolute; bottom: 30px; left: 0; right: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        #status {
+            background: rgba(0, 0, 0, 0.85); padding: 18px 25px; border-radius: 25px;
+            color: #fff; font-weight: bold; border: 2px solid #0f0;
+            text-align: center; width: 90%; max-width: 500px;
+            font-size: 1.2rem; box-shadow: 0 0 20px rgba(0,255,0,0.2);
+        }
+        #mic-btn {
+            display: none; width: 85px; height: 85px; background: #ff4444; border-radius: 50%;
+            border: 4px solid #fff; cursor: pointer; align-items: center; justify-content: center;
+            box-shadow: 0 0 30px rgba(255,0,0,0.4); animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
         
-        #status { 
-            background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 25px; 
-            color: #fff; font-weight: bold; border: 2px solid #0f0; 
-            text-align: center; width: 85%; max-width: 400px;
-            box-shadow: 0 0 20px rgba(0,255,0,0.4);
-            font-size: 1.1rem; line-height: 1.3;
-        }
-
-        #mic-btn { 
-            display: none; width: 85px; height: 85px; background: #ff4444; border-radius: 50%; 
-            border: 4px solid white; cursor: pointer; box-shadow: 0 0 30px rgba(255,0,0,0.6);
-            align-items: center; justify-content: center; animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-
-        #start-screen { position: fixed; inset: 0; background: radial-gradient(circle, #002211 0%, #000 100%); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-        input { padding: 15px; border-radius: 50px; border: 2px solid #0f0; background: transparent; color: #0f0; text-align: center; margin-bottom: 20px; width: 100%; max-width: 300px; font-size: 1.2rem; outline: none; }
-        #btn-start { background: #0f0; color: black; padding: 20px 60px; border-radius: 50px; font-weight: 900; border: none; cursor: pointer; font-size: 1.3rem; box-shadow: 0 0 40px #0f0; }
-        .safety { font-size: 0.75rem; color: #ffaa00; margin-top: 25px; max-width: 280px; }
+        #start-screen { position: fixed; inset: 0; background: radial-gradient(circle, #002211 0%, #000 100%); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
+        input { padding: 18px; border-radius: 50px; border: 2px solid #0f0; background: rgba(0,255,0,0.1); color: #0f0; text-align: center; margin-bottom: 25px; width: 300px; font-size: 1.3rem; outline: none; }
+        #btn-start { background: #0f0; color: #000; padding: 20px 60px; border-radius: 50px; font-weight: 900; border: none; cursor: pointer; font-size: 1.5rem; box-shadow: 0 0 30px #0f0; }
     </style>
 </head>
 <body>
+
+    <div id="progress-container"><div id="progress-bar"></div></div>
+
     <div id="start-screen">
-        <h1 style="color:#0f0; margin-bottom:10px;">SMARTLESSA AR</h1>
-        <input type="text" id="user-name" placeholder="Твоє ім'я...">
-        <button id="btn-start">ПОЧАТИ КВЕСТ</button>
-        <div class="safety">⚠️ Нагляд дорослих обов'язковий (дітям до 13 років).</div>
+        <h1 style="color:#0f0; font-size: 3rem; margin-bottom: 30px; text-shadow: 0 0 20px #0f0;">SMARTLESSA</h1>
+        <input type="text" id="user-name" placeholder="Введи своє ім'я...">
+        <button id="btn-start">РОЗПОЧАТИ КВЕСТ</button>
     </div>
 
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
     
     <div id="ui">
-        <div id="status">Завантаження системи...</div>
+        <div id="status">Завантаження камери...</div>
         <div id="mic-btn">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+            <svg width="45" height="45" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
         </div>
     </div>
 
@@ -58,65 +59,52 @@
         const video = document.getElementById('video');
         const statusDiv = document.getElementById('status');
         const micBtn = document.getElementById('mic-btn');
+        const progressBar = document.getElementById('progress-bar');
 
-        let handLandmarker, scene, camera, renderer, braceletGroup, masterGroup, holoPlane, holoVideo;
+        let handLandmarker, scene, camera, renderer, ring, braceletGroup, masterGroup, holoPlane, holoVideo, particles;
         let userName = "досліднику";
-        let score = 0;
-        let currentIdx = 0;
-        let isWaitingForGesture = true;
-        let isSpeaking = false;
+        let score = 0, currentIdx = 0;
+        let isWaitingForGesture = true, isSpeaking = false;
 
         const questions = [
             { q: "Яка найбільша оболонка Землі об'єднує всі інші сфери?", a: ["географічна"] },
             { q: "Як називається повітряна оболонка Землі?", a: ["атмосфера"] },
             { q: "Як називається тверда оболонка Землі?", a: ["літосфера"] },
-            { q: "Як називається водна оболонка нашої планети?", a: ["гідросфера"] },
+            { q: "Назви водну оболонку нашої планети.", a: ["гідросфера"] },
             { q: "Як називається жива оболонка планети?", a: ["біосфера"] }
         ];
 
-        // === ПОКРАЩЕНА ФУНКЦІЯ ГОЛОСУ ===
+        function getBestVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            return voices.find(v => v.lang.includes('uk')) || null;
+        }
+
         function speak(text, onEnd = () => {}) {
             statusDiv.innerText = text;
-            statusDiv.style.borderColor = "#0f0";
-
             window.speechSynthesis.cancel();
-
+            
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'uk-UA';
-            utterance.rate = 0.97;
-            utterance.pitch = 1.0;
+            const voice = getBestVoice();
+            
+            if (voice) {
+                utterance.voice = voice;
+                utterance.lang = 'uk-UA';
+            } else {
+                utterance.lang = 'uk-UA'; // Спроба через системний дефолт
+            }
 
-            // Шукаємо український голос
-            const voices = window.speechSynthesis.getVoices();
-            const ukVoice = voices.find(v => 
-                v.lang.includes('uk') || v.name.toLowerCase().includes('ukrain')
-            );
-            if (ukVoice) utterance.voice = ukVoice;
-
-            utterance.onend = () => {
-                isSpeaking = false;
-                onEnd();
-            };
-
+            utterance.onend = () => { isSpeaking = false; onEnd(); };
             isSpeaking = true;
             window.speechSynthesis.speak(utterance);
         }
 
         async function initAI() {
-            try {
-                const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
-                handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                    baseOptions: { 
-                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", 
-                        delegate: "GPU" 
-                    },
-                    runningMode: "VIDEO", 
-                    numHands: 1
-                });
-                statusDiv.innerText = "👋 Система готова! Покажи кулак перед камерою.";
-            } catch (e) {
-                console.error(e);
-            }
+            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
+                runningMode: "VIDEO", numHands: 1
+            });
+            statusDiv.innerText = "Система готова! Покажи кулак ✊";
         }
 
         function setupScene() {
@@ -127,42 +115,39 @@
 
             masterGroup = new THREE.Group();
             scene.add(masterGroup);
+            
             braceletGroup = new THREE.Group();
             masterGroup.add(braceletGroup);
 
-            const ring = new THREE.Mesh(
+            ring = new THREE.Mesh(
                 new THREE.TorusGeometry(0.25, 0.015, 16, 100),
                 new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 2.5 })
             );
             braceletGroup.add(ring);
 
-            // Hologram Video
             holoVideo = document.createElement('video');
-            holoVideo.src = 'assets/video/guide_hologram.mp4';   // ← якщо немає файлу — буде мовчки
-            holoVideo.muted = true;
-            holoVideo.loop = true;
-            holoVideo.playsInline = true;
-
+            holoVideo.src = 'assets/video/guide_hologram.mp4'; 
+            holoVideo.muted = true; holoVideo.loop = true; holoVideo.playsInline = true;
             const videoTex = new THREE.VideoTexture(holoVideo);
             const holoMat = new THREE.ShaderMaterial({
-                uniforms: { uVideo: { value: videoTex }, uTime: { value: 0 } },
+                uniforms: { uVideo: { value: videoTex } },
                 vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-                fragmentShader: `
-                    uniform sampler2D uVideo; varying vec2 vUv;
-                    void main() {
-                        vec4 color = texture2D(uVideo, vUv);
-                        float greenness = color.g - (color.r + color.b) * 0.5;
-                        if (greenness > 0.25) discard;
-                        gl_FragColor = vec4(color.rgb, 1.0);
-                    }
-                `,
+                fragmentShader: `uniform sampler2D uVideo; varying vec2 vUv; void main() { vec4 color = texture2D(uVideo, vUv); if (color.g > (color.r + color.b) * 0.5 + 0.1) discard; gl_FragColor = vec4(color.rgb, 1.0); }`,
                 transparent: true
             });
-
             holoPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.1), holoMat);
             holoPlane.position.set(0, 0.6, 0.05);
             holoPlane.visible = false;
             masterGroup.add(holoPlane);
+
+            const pGeo = new THREE.BufferGeometry();
+            const pCount = 200;
+            const pos = new Float32Array(pCount * 3);
+            for(let i=0; i<pCount*3; i++) pos[i] = (Math.random()-0.5)*1.5;
+            pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            particles = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0x00ff00, size: 0.04 }));
+            particles.visible = false;
+            masterGroup.add(particles);
 
             camera.position.z = 3.5;
             animate();
@@ -170,57 +155,60 @@
 
         function triggerQuestion() {
             if (isSpeaking || currentIdx >= questions.length) return;
-
             isWaitingForGesture = false;
-            isSpeaking = true;
             holoPlane.visible = true;
-            holoVideo.play().catch(() => {}); // якщо відео немає — не падати
-
+            holoVideo.play();
+            progressBar.style.width = ((currentIdx) / questions.length * 100) + "%";
+            
             speak(questions[currentIdx].q, () => {
-                isSpeaking = false;
                 holoVideo.pause();
                 micBtn.style.display = "flex";
-                statusDiv.innerText = "🎤 ГОВОРИ ЗАРАЗ...";
+                statusDiv.innerText = "🎤 Говори зараз...";
                 statusDiv.style.borderColor = "#ff4444";
             });
         }
 
         micBtn.onclick = () => {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                speak("Голосове введення не підтримується браузером.");
-                return;
-            }
-
             const rec = new SpeechRecognition();
             rec.lang = 'uk-UA';
             rec.onstart = () => micBtn.style.background = "#00ff00";
-
             rec.onresult = (e) => {
-                const res = e.results[0][0].transcript.toLowerCase();
+                const res = e.results[0][0].transcript.toLowerCase().trim();
                 const isCorrect = questions[currentIdx].a.some(ans => res.includes(ans));
-
-                if (isCorrect) score++;
-
-                speak(isCorrect ? "Правильно! Чудова робота!" : "Не зовсім. Йдемо далі!");
 
                 micBtn.style.display = "none";
                 micBtn.style.background = "#ff4444";
-                currentIdx++;
+                statusDiv.style.borderColor = "#0f0";
+
+                if (isCorrect) {
+                    score++;
+                    ring.material.emissive.setHex(0x00ff00);
+                    speak("Правильно! Чудово!");
+                } else {
+                    ring.material.emissive.setHex(0xffaa00);
+                    speak(`Майже. Це ${questions[currentIdx].a[0]}.`);
+                }
 
                 setTimeout(() => {
-                    currentIdx < questions.length ? triggerQuestion() : finishLesson();
-                }, 1800);
+                    ring.material.emissive.setHex(0x00ffaa);
+                    currentIdx++;
+                    if (currentIdx < questions.length) triggerQuestion();
+                    else finishLesson();
+                }, 2800);
             };
-
             rec.start();
         };
 
         function finishLesson() {
+            progressBar.style.width = "100%";
+            particles.visible = true;
             holoPlane.visible = true;
-            holoVideo.play().catch(() => {});
-            speak(`Вітаю, ${userName}! Урок завершено. Результат: ${score} з 5!`, () => {
-                setTimeout(() => location.reload(), 7000);
+            holoVideo.play();
+            
+            // Фінальна фраза - примусово українською
+            speak(`Вітаю! Урок завершено. Твій результат: ${score} з 5! Ти справжній вчений!`, () => {
+                setTimeout(() => location.reload(), 8000);
             });
         }
 
@@ -228,55 +216,39 @@
             requestAnimationFrame(animate);
             if (handLandmarker && video.readyState >= 2) {
                 const res = handLandmarker.detectForVideo(video, performance.now());
-                if (res.landmarks && res.landmarks[0]) {
+                if (res.landmarks?.[0]) {
                     const wrist = res.landmarks[0][0];
                     masterGroup.position.x = (0.5 - wrist.x) * 3.8;
                     masterGroup.position.y = (0.5 - wrist.y) * 2.8;
                     masterGroup.visible = true;
-
-                    const lm = res.landmarks[0];
-                    const isFist = lm[8].y > lm[6].y && lm[12].y > lm[10].y;
-                    if (isFist && isWaitingForGesture) triggerQuestion();
-                } else {
-                    masterGroup.visible = false;
-                }
+                    if (isWaitingForGesture && res.landmarks[0][8].y > res.landmarks[0][6].y) triggerQuestion();
+                } else { masterGroup.visible = false; }
             }
             if (braceletGroup) braceletGroup.rotation.z += 0.02;
+            if (particles.visible) {
+                particles.rotation.y += 0.03;
+                particles.scale.multiplyScalar(1.005);
+            }
             renderer.render(scene, camera);
         }
 
-        // ====================== СТАРТ ======================
         document.getElementById('btn-start').onclick = async () => {
             userName = document.getElementById('user-name').value || "досліднику";
             document.getElementById('start-screen').style.display = 'none';
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-                video.srcObject = stream;
-                video.play();
-
-                setupScene();
-                initAI();
-
-                // Важливо: чекаємо завантаження голосів + user gesture
-                setTimeout(() => {
-                    speak(`Привіт, ${userName}! Покажи кулак, щоб почати.`, () => {
-                        isWaitingForGesture = true;
-                    });
-                }, 1500);
-
-            } catch (err) {
-                alert("Не вдалося отримати доступ до камери");
-            }
+            
+            // Важливо: Отримуємо голоси одразу при кліку
+            window.speechSynthesis.getVoices();
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            video.srcObject = stream;
+            setupScene();
+            initAI();
+            speak(`Привіт, ${userName}! Покажи кулак, щоб почати!`);
         };
-
-        // Примусово завантажуємо голоси
+        
         window.speechSynthesis.onvoiceschanged = () => {
-            console.log("Голоси завантажено:", window.speechSynthesis.getVoices().length);
+            console.log("Голоси готові");
         };
-        window.speechSynthesis.getVoices(); // перший виклик
-
-        initAI();
     </script>
 </body>
 </html>
