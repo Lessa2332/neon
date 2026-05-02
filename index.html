@@ -3,38 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SMARTLESSA | AR GEOGRAPHY PRO</title>
+    <title>SMARTLESSA | FIXED AR</title>
     <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body { overflow: hidden; background: black; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #0f0; }
+        body { overflow: hidden; background: black; font-family: sans-serif; color: #0f0; }
         #video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; transform: scaleX(-1); }
         #canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
         #ui { position: absolute; bottom: 40px; left: 0; right: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        #status { background: rgba(0,0,0,0.85); padding: 15px 30px; border-radius: 50px; color: #ffdd88; font-weight: bold; border: 2px solid #0f0; min-width: 280px; text-align: center; box-shadow: 0 0 20px rgba(0,255,170,0.3); font-size: 1.1rem; }
-        #loading { position: fixed; inset: 0; background: black; z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #0f0; }
-        #start-screen { position: fixed; inset: 0; background: radial-gradient(circle, #002211 0%, #000 100%); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        input { padding: 18px; border-radius: 50px; border: 2px solid #0f0; background: transparent; color: #0f0; text-align: center; margin-bottom: 25px; width: 80%; max-width: 320px; font-size: 1.2rem; outline: none; }
-        #btn-start { background: #0f0; color: black; padding: 20px 60px; border-radius: 50px; font-weight: 900; border: none; cursor: pointer; box-shadow: 0 0 40px #0f0; font-size: 1.3rem; transition: 0.3s; }
-        #btn-start:active { transform: scale(0.95); }
+        #status { background: rgba(0,0,0,0.8); padding: 12px 25px; border-radius: 30px; color: #ffdd88; font-weight: bold; border: 2px solid #0f0; text-align: center; min-width: 250px; }
+        #start-screen { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        button#btn-start { background: #0f0; color: black; padding: 20px 50px; border-radius: 50px; font-weight: bold; border: none; cursor: pointer; font-size: 1.2rem; box-shadow: 0 0 30px #0f0; }
     </style>
 </head>
 <body>
 
-    <div id="loading">⌛ Завантаження ШІ-моделей...</div>
-
-    <div id="start-screen" style="display:none;">
-        <h1 style="color:#0f0; margin-bottom:10px; letter-spacing: 3px;">SMARTLESSA AR</h1>
-        <p style="color:#0f0; opacity: 0.7; margin-bottom:40px;">Цифровий репетитор з географії</p>
-        <input type="text" id="user-name" placeholder="Твоє ім'я...">
-        <button id="btn-start">УВІЙТИ В AR</button>
+    <div id="start-screen">
+        <h1 style="color:#0f0; margin-bottom:30px;">SMARTLESSA AR</h1>
+        <button id="btn-start">ЗАПУСТИТИ УРОК</button>
     </div>
 
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
     
     <div id="ui">
-        <div id="status">Покажи долоню</div>
+        <div id="status">Покажіть кулак</div>
     </div>
 
     <script type="module">
@@ -42,44 +35,36 @@
 
         const video = document.getElementById('video');
         const statusDiv = document.getElementById('status');
-        let handLandmarker, scene, camera, renderer, braceletGroup, holoPlane, holoVideo, videoTex;
-        let userName = "досліднику";
+        let handLandmarker, scene, camera, renderer, braceletGroup, masterGroup, holoPlane, holoVideo;
         let hologramActive = false;
-        let isAsking = false;
-        let score = 0;
 
-        // --- ШЕЙДЕР ДЛЯ ВИДАЛЕННЯ ЗЕЛЕНОГО ТА ЕФЕКТУ ГОЛОГРАМИ ---
         const vertexShader = `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
         const fragmentShader = `
             uniform sampler2D uVideo; uniform float uTime; varying vec2 vUv;
             void main() {
                 vec4 color = texture2D(uVideo, vUv);
                 float greenness = color.g - (color.r + color.b) * 0.5;
-                if (greenness > 0.28) discard;
-                float scanline = sin(vUv.y * 300.0 + uTime * 15.0) * 0.1;
-                vec3 holo = color.rgb + vec3(0.0, 0.4, 0.6) * scanline;
-                gl_FragColor = vec4(holo, 0.95);
+                if (greenness > 0.25) discard;
+                float scanline = sin(vUv.y * 400.0 + uTime * 10.0) * 0.08;
+                gl_FragColor = vec4(color.rgb + vec3(0.0, 0.2, 0.4) * scanline, 1.0);
             }
         `;
 
-        function speak(text) {
+        function speak(text, callback) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'uk-UA';
-            utterance.pitch = 1.2; // Робимо голос трохи вищим, як у лисички
+            utterance.onend = callback;
             window.speechSynthesis.speak(utterance);
         }
 
         async function initAI() {
-            try {
-                const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
-                handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                    baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
-                    runningMode: "VIDEO", numHands: 1
-                });
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('start-screen').style.display = 'flex';
-            } catch (e) { statusDiv.innerText = "Помилка мережі"; }
+            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
+                runningMode: "VIDEO", numHands: 1
+            });
+            console.log("AI Ready");
         }
 
         function setupScene() {
@@ -88,46 +73,53 @@
             renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
 
+            // Головна група, яка слідує за рукою
+            masterGroup = new THREE.Group();
+            scene.add(masterGroup);
+
+            // Підгрупа для кільця (вона буде обертатися)
             braceletGroup = new THREE.Group();
-            scene.add(braceletGroup);
+            masterGroup.add(braceletGroup);
 
             const ring = new THREE.Mesh(
-                new THREE.TorusGeometry(0.22, 0.015, 16, 100),
-                new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 2.5 })
+                new THREE.TorusGeometry(0.25, 0.015, 16, 100),
+                new THREE.MeshStandardMaterial({ color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 2 })
             );
             braceletGroup.add(ring);
-            braceletGroup.add(new THREE.PointLight(0x00ffaa, 2, 5));
 
+            // Лисичка (додаємо до masterGroup, щоб вона НЕ оберталася разом із кільцем)
             holoVideo = document.createElement('video');
             holoVideo.src = 'assets/video/guide_hologram.mp4';
-            holoVideo.muted = false; 
+            holoVideo.muted = true; // Глушимо звук відео
+            holoVideo.loop = true;
             holoVideo.playsInline = true;
             holoVideo.crossOrigin = "anonymous";
 
-            videoTex = new THREE.VideoTexture(holoVideo);
+            const videoTex = new THREE.VideoTexture(holoVideo);
             const holoMat = new THREE.ShaderMaterial({
                 uniforms: { uVideo: { value: videoTex }, uTime: { value: 0 } },
                 vertexShader, fragmentShader, transparent: true
             });
 
-            holoPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.2), holoMat);
-            holoPlane.position.y = 0.6;
+            holoPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.1), holoMat);
+            holoPlane.position.set(0, 0.6, 0.05); // Трохи попереду кільця
             holoPlane.visible = false;
-            braceletGroup.add(holoPlane);
+            masterGroup.add(holoPlane); // Лисичка статична відносно руки
 
             camera.position.z = 3.5;
             animate();
         }
 
-        function askQuestion() {
-            if (isAsking) return;
-            isAsking = true;
-            const text = `Олесю, перевіримо знання! Як називається найбільший природний комплекс планети Земля?`;
-            speak(text);
+        function startGeogrophyQuest() {
+            hologramActive = true;
+            holoPlane.visible = true;
+            holoVideo.play();
             
-            setTimeout(() => {
+            statusDiv.innerText = "🦊 Лисичка запитує...";
+            
+            speak("Привіт! Я Смарт Лесса. Давай пограємо! Скажи мені, як називається найбільший природний комплекс нашої планети Земля?", () => {
                 startListening();
-            }, 7500);
+            });
         }
 
         function startListening() {
@@ -135,22 +127,18 @@
             if (!SpeechRecognition) return;
             const rec = new SpeechRecognition();
             rec.lang = 'uk-UA';
-
-            rec.onstart = () => { statusDiv.innerText = "🎤 Слухаю твою відповідь..."; statusDiv.style.borderColor = "#f00"; };
+            rec.onstart = () => { statusDiv.innerText = "🎤 Говори зараз..."; statusDiv.style.color = "#f00"; };
             rec.onresult = (e) => {
                 const res = e.results[0][0].transcript.toLowerCase();
                 if (res.includes("географічна") && res.includes("оболонка")) {
-                    score++;
-                    speak(`Браво! Це правильна відповідь. Тримай зірочку!`);
-                    statusDiv.innerText = `⭐ ВІРНО! Балів: ${score}`;
-                    statusDiv.style.borderColor = "#0f0";
-                    isAsking = false;
+                    speak("Правильно! Ти молодець! Це справді географічна оболонка.");
+                    statusDiv.innerText = "⭐ ПРАВИЛЬНО!";
+                    statusDiv.style.color = "#0f0";
                 } else {
-                    speak("Майже! Це найбільший комплекс, що об'єднує всі сфери Землі. Спробуй ще раз!");
-                    setTimeout(startListening, 5000);
+                    speak("Ой, спробуй ще раз. Це оболонка, де ми всі живемо.");
+                    setTimeout(startListening, 3000);
                 }
             };
-            rec.onerror = () => { isAsking = false; statusDiv.innerText = "Покажи кулак знову"; };
             rec.start();
         }
 
@@ -161,38 +149,30 @@
                 const res = handLandmarker.detectForVideo(video, performance.now());
                 if (res.landmarks && res.landmarks[0]) {
                     const wrist = res.landmarks[0][0];
-                    // КОРЕКЦІЯ ДЗЕРКАЛЬНОСТІ (Фронтальна камера)
-                    braceletGroup.position.x = (0.5 - wrist.x) * 3.8; 
-                    braceletGroup.position.y = (0.5 - wrist.y) * 2.8;
-                    braceletGroup.visible = true;
+                    // Дзеркальне позиціонування
+                    masterGroup.position.x = (0.5 - wrist.x) * 3.8;
+                    masterGroup.position.y = (0.5 - wrist.y) * 2.8;
+                    masterGroup.visible = true;
 
                     const lm = res.landmarks[0];
                     const isFist = lm[8].y > lm[6].y && lm[12].y > lm[10].y;
-                    
                     if (isFist && !hologramActive) {
-                        hologramActive = true;
-                        holoPlane.visible = true;
-                        holoVideo.play();
-                        statusDiv.innerText = "🦊 SmartLessa активована";
-                        holoVideo.onended = () => { askQuestion(); };
+                        startGeogrophyQuest();
                     }
-                } else { braceletGroup.visible = false; }
+                } else { masterGroup.visible = false; }
             }
-            if (holoPlane && holoPlane.material.uniforms) holoPlane.material.uniforms.uTime.value = time;
-            if (braceletGroup) braceletGroup.rotation.z += 0.015;
+            if (holoPlane.material.uniforms) holoPlane.material.uniforms.uTime.value = time;
+            if (braceletGroup) braceletGroup.rotation.z += 0.02; // Обертається тільки кільце
             renderer.render(scene, camera);
         }
 
         document.getElementById('btn-start').onclick = async () => {
-            userName = document.getElementById('user-name').value || "досліднику";
             document.getElementById('start-screen').style.display = 'none';
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-                video.srcObject = stream;
-                video.play();
-                setupScene();
-                speak(`Привіт, ${userName}! Я готова до уроку. Покажи кулак, щоб ми почали.`);
-            } catch (e) { alert("Будь ласка, дозволь доступ до камери"); }
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            video.srcObject = stream;
+            video.play();
+            setupScene();
+            speak("Допоможи мені розгадати загадку. Покажи кулак!");
         };
 
         initAI();
