@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SMARTLESSA AR | FINAL VOICE</title>
-    <!-- Додаємо бібліотеку для гарантованої озвучки -->
-    <script src="https://code.responsivevoice.org/responsivevoice.js?key=YOUR_FREE_KEY"></script>
+    <title>SMARTLESSA AR | ULTRA STABLE</title>
     <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
     <style>
-        /* Стилі залишаємо без змін */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
         #video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; transform: scaleX(-1); }
@@ -19,7 +16,6 @@
         #status { background: rgba(0, 0, 0, 0.85); padding: 18px 25px; border-radius: 25px; color: #fff; font-weight: bold; border: 2px solid #0f0; text-align: center; width: 90%; max-width: 500px; font-size: 1.2rem; }
         #mic-btn { display: none; width: 85px; height: 85px; background: #ff4444; border-radius: 50%; border: 4px solid #fff; cursor: pointer; align-items: center; justify-content: center; }
         #start-screen { position: fixed; inset: 0; background: radial-gradient(circle, #002211 0%, #000 100%); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
-        input { padding: 18px; border-radius: 50px; border: 2px solid #0f0; background: rgba(0,255,0,0.1); color: #0f0; text-align: center; margin-bottom: 25px; width: 300px; font-size: 1.3rem; }
         #btn-start { background: #0f0; color: #000; padding: 20px 60px; border-radius: 50px; font-weight: 900; border: none; cursor: pointer; font-size: 1.5rem; }
     </style>
 </head>
@@ -28,15 +24,14 @@
     <div id="progress-container"><div id="progress-bar"></div></div>
     <div id="start-screen">
         <h1 style="color:#0f0; font-size: 3rem; margin-bottom: 30px;">SMARTLESSA</h1>
-        <input type="text" id="user-name" placeholder="Введи своє ім'я...">
-        <button id="btn-start">ПОЧАТИ</button>
+        <button id="btn-start">РОЗПОЧАТИ</button>
     </div>
 
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
     
     <div id="ui">
-        <div id="status">Завантаження...</div>
+        <div id="status">Натисніть СТАРТ</div>
         <div id="mic-btn">
             <svg width="45" height="45" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
         </div>
@@ -49,6 +44,7 @@
         const statusDiv = document.getElementById('status');
         const micBtn = document.getElementById('mic-btn');
         const progressBar = document.getElementById('progress-bar');
+        const audioPlayer = new Audio();
 
         let handLandmarker, scene, camera, renderer, masterGroup, holoPlane, holoVideo;
         let score = 0, currentIdx = 0;
@@ -62,30 +58,29 @@
             { q: "Як називається жива оболонка планети?", a: ["біосфера"] }
         ];
 
-        // ГАРАНТОВАНА ОЗВУЧКА
-        function speak(text, onEnd = () => {}) {
+        // ФУНКЦІЯ ГАРАНТОВАНОГО ГОЛОСУ ЧЕРЕЗ ВІДКРИТИЙ API
+        async function speak(text, onEnd = () => {}) {
             statusDiv.innerText = text;
             isSpeaking = true;
 
-            // Перевіряємо, чи є в системі українська
-            let voices = window.speechSynthesis.getVoices();
-            let hasUk = voices.some(v => v.lang.includes('uk'));
-
-            if (hasUk) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'uk-UA';
-                utterance.onend = () => { isSpeaking = false; onEnd(); };
-                window.speechSynthesis.speak(utterance);
-            } else if (window.responsiveVoice) {
-                // Якщо системи немає — використовуємо онлайн-бібліотеку
-                responsiveVoice.speak(text, "Ukrainian Female", {
-                    onend: () => { isSpeaking = false; onEnd(); }
-                });
-            } else {
-                // Якщо інтернет пропав — просто текст
-                console.warn("No voice service available.");
-                setTimeout(() => { isSpeaking = false; onEnd(); }, 3000);
+            // Використовуємо альтернативний проксі для TTS, який рідко блокується
+            const voiceUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=uk&client=tw-ob&q=${encodeURIComponent(text)}`;
+            
+            audioPlayer.src = voiceUrl;
+            audioPlayer.onended = () => {
+                isSpeaking = false;
+                onEnd();
+            };
+            
+            try {
+                await audioPlayer.play();
+            } catch (e) {
+                console.warn("Автоплей заблоковано, спроба через системний TTS");
+                // Спроба через системний голос як останній шанс
+                const ut = new SpeechSynthesisUtterance(text);
+                ut.lang = 'uk-UA';
+                ut.onend = () => { isSpeaking = false; onEnd(); };
+                window.speechSynthesis.speak(ut);
             }
         }
 
@@ -95,7 +90,7 @@
                 baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
                 runningMode: "VIDEO", numHands: 1
             });
-            statusDiv.innerText = "Готова! Покажи кулак ✊";
+            statusDiv.innerText = "Система готова! Покажи кулак ✊";
         }
 
         function setupScene() {
@@ -103,7 +98,6 @@
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
             renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-
             masterGroup = new THREE.Group();
             scene.add(masterGroup);
 
@@ -111,14 +105,7 @@
             holoVideo.src = 'assets/video/guide_hologram.mp4'; 
             holoVideo.muted = true; holoVideo.loop = true; holoVideo.playsInline = true;
             const videoTex = new THREE.VideoTexture(holoVideo);
-            
-            const holoMat = new THREE.ShaderMaterial({
-                uniforms: { uVideo: { value: videoTex } },
-                vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-                fragmentShader: `uniform sampler2D uVideo; varying vec2 vUv; void main() { vec4 color = texture2D(uVideo, vUv); if (color.g > (color.r + color.b) * 0.5 + 0.1) discard; gl_FragColor = vec4(color.rgb, 1.0); }`,
-                transparent: true
-            });
-
+            const holoMat = new THREE.MeshBasicMaterial({ map: videoTex, transparent: true, opacity: 0.8 });
             holoPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.1), holoMat);
             holoPlane.position.set(0, 0.6, 0);
             holoPlane.visible = false;
@@ -138,41 +125,32 @@
             speak(questions[currentIdx].q, () => {
                 holoVideo.pause();
                 micBtn.style.display = "flex";
-                statusDiv.innerText = "🎤 Слухаю відповідь...";
+                statusDiv.innerText = "🎤 Говори...";
             });
         }
 
         micBtn.onclick = () => {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Використовуйте Chrome для розпізнавання голосу");
+                return;
+            }
             const rec = new SpeechRecognition();
             rec.lang = 'uk-UA';
             rec.onresult = (e) => {
-                const res = e.results[0][0].transcript.toLowerCase().trim();
+                const res = e.results[0][0].transcript.toLowerCase();
                 const isCorrect = questions[currentIdx].a.some(ans => res.includes(ans));
                 micBtn.style.display = "none";
-
-                if (isCorrect) {
-                    score++;
-                    speak("Правильно!", next);
-                } else {
-                    speak(`Ні, це ${questions[currentIdx].a[0]}`, next);
-                }
-
+                if (isCorrect) { score++; speak("Правильно!", next); }
+                else { speak(`Це ${questions[currentIdx].a[0]}`, next); }
                 function next() {
                     currentIdx++;
                     if (currentIdx < questions.length) triggerQuestion();
-                    else finish();
+                    else speak(`Кінець! Твій результат ${score} з 5.`);
                 }
             };
             rec.start();
         };
-
-        function finish() {
-            progressBar.style.width = "100%";
-            speak(`Квест завершено! Результат: ${score} з 5.`, () => {
-                setTimeout(() => location.reload(), 5000);
-            });
-        }
 
         function animate() {
             requestAnimationFrame(animate);
@@ -190,12 +168,16 @@
         }
 
         document.getElementById('btn-start').onclick = async () => {
+            // РОЗБЛОКУВАННЯ АУДІО: важливо для браузера
+            audioPlayer.play().catch(() => {}); 
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+
             document.getElementById('start-screen').style.display = 'none';
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             video.srcObject = stream;
             setupScene();
             await initAI();
-            speak("Привіт! Покажи кулак, щоб почати квест.");
+            speak("Привіт! Покажи кулак!");
         };
     </script>
 </body>
